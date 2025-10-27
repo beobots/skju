@@ -1,18 +1,6 @@
-warns = [
-    "clippy::pedantic",
-    "clippy::nursery"
-]
+msrv = "1.90.0"
 
-allow = [
-    "clippy::module_name_repetitions",
-    "clippy::missing_errors_doc",
-    "clippy::missing_panics_doc"
-]
-
-deny = [
-    "clippy::unwrap_used",
-    "clippy::expect_used",
-    "clippy::todo"
-]
-
-max_line_length = 120
+cognitive-complexity-threshold = 30
+too-many-lines-threshold = 80
+too-many-arguments-threshold = 8
+type-complexity-threshold = 200
