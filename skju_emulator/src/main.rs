@@ -31,6 +31,7 @@ fn get_sensors() -> anyhow::Result<Vec<SensorConfig>> {
         .read(true)
         .write(true)
         .create(true)
+        .truncate(true)
         .open(file_path)?;
 
     file.read_to_string(&mut file_data)?;
@@ -53,7 +54,7 @@ fn generate_sensor_data(sensor_id: u64) -> anyhow::Result<()> {
         .create(true)
         .write(true)
         .truncate(true)
-        .open(&file_path)?;
+        .open(file_path)?;
 
     let mut writer = BufWriter::new(file);
     let mut previous_value = 0.0;
