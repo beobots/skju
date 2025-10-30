@@ -4,5 +4,6 @@
 *.tmp
 .vscode/
 .idea/
+/data/
 .DS_Store
 Thumbs.db

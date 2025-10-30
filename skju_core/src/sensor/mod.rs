@@ -1,6 +1,5 @@
 use crate::common::{Coord, FilterContext, LowPassFilter, SensorData};
 use std::collections::VecDeque;
-use std::time::SystemTime;
 
 pub struct Sensor<T: LowPassFilter> {
     pub name: String,
@@ -25,7 +24,7 @@ impl<T: LowPassFilter> Sensor<T> {
         self.readings.is_empty()
     }
 
-    pub fn write(&mut self, value: f64, timestamp: SystemTime) {
+    pub fn write(&mut self, value: f64, timestamp: u128) {
         let context = FilterContext {
             timestamp,
             readings: &self.readings,

@@ -1,22 +1,29 @@
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
-use std::time::SystemTime;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Coord {
     pub x: f32,
     pub y: f32,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SensorConfig {
+    pub id: u64,
+    pub name: String,
+    pub coord: Coord,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SensorData {
     pub value: f64,
-    pub timestamp: SystemTime,
+    pub timestamp: u128,
 }
 
 pub struct FilterContext<'a> {
     pub readings: &'a VecDeque<SensorData>,
     pub raw_value: f64,
-    pub timestamp: SystemTime,
+    pub timestamp: u128,
     pub capacity: usize,
 }
 

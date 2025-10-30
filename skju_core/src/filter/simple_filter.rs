@@ -12,15 +12,11 @@ impl SimpleFilter {
 
 impl LowPassFilter for SimpleFilter {
     fn apply(&mut self, context: &FilterContext) -> f64 {
-        let last_reading = context.readings.back();
-
-        if last_reading.is_none() {
-            return context.raw_value;
-        }
-
-        let last_reading = last_reading.unwrap().value;
-
-        last_reading + self.smoothing as f64 * (context.raw_value - last_reading)
+        context
+            .readings
+            .back()
+            .map(|r| r.value + self.smoothing as f64 * (context.raw_value - r.value))
+            .unwrap_or_else(|| context.raw_value)
     }
 }
 
@@ -29,7 +25,6 @@ mod tests {
     use crate::common::{FilterContext, LowPassFilter, SensorData};
     use crate::filter::simple_filter::SimpleFilter;
     use std::collections::VecDeque;
-    use std::time::SystemTime;
 
     #[test]
     fn filter_with_no_readings() {
@@ -41,7 +36,7 @@ mod tests {
             capacity,
             raw_value,
             readings: &readings,
-            timestamp: SystemTime::now(),
+            timestamp: 4242,
         };
 
         assert_eq!(filter.apply(&context), raw_value);
@@ -62,7 +57,7 @@ mod tests {
         let expected_2 = last_filtered_value + smoothing_2 as f64 * (raw_value - last_filtered_value);
 
         readings.push_back(SensorData {
-            timestamp: SystemTime::now(),
+            timestamp: 4242,
             value: last_filtered_value,
         });
 
@@ -70,7 +65,7 @@ mod tests {
             capacity,
             raw_value,
             readings: &readings,
-            timestamp: SystemTime::now(),
+            timestamp: 4242,
         };
 
         // TODO: improve using approx_eq instead
