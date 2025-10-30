@@ -6,30 +6,27 @@ use std::io::{BufWriter, Read, Write};
 use std::path::Path;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-fn main() -> anyhow::Result<()> {
-    let sensors = get_sensors()?;
+fn main() {
+    let sensors = get_sensors().unwrap_or_default();
+
+    if sensors.is_empty() {
+        println!("There are no sensors to run");
+    }
 
     std::thread::scope(|scope| {
         for sensor in sensors {
             scope.spawn(move || {
-                if let Err(e) = generate_sensor_data(sensor) {
+                if let Err(e) = generate_sensor_data(sensor.id) {
                     eprintln!("{:?}", e);
                 }
             });
         }
     });
-
-    Ok(())
 }
 
 fn get_sensors() -> anyhow::Result<Vec<SensorConfig>> {
-    let file_path = Path::new("data/sensors.json");
+    let file_path = verify_path_exists("data/sensors.json")?;
     let mut file_data = String::new();
-
-    if let Some(parent) = file_path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-
     let mut file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -49,8 +46,9 @@ fn get_sensors() -> anyhow::Result<Vec<SensorConfig>> {
     Ok(sensors)
 }
 
-fn generate_sensor_data(sensor: SensorConfig) -> anyhow::Result<()> {
-    let file_path = format!("data/sensor_{}.txt", sensor.id);
+fn generate_sensor_data(sensor_id: u64) -> anyhow::Result<()> {
+    let path = format!("data/sensor_{}.txt", sensor_id);
+    let file_path = verify_path_exists(&path)?;
     let file = OpenOptions::new()
         .create(true)
         .write(true)
@@ -60,7 +58,7 @@ fn generate_sensor_data(sensor: SensorConfig) -> anyhow::Result<()> {
     let mut writer = BufWriter::new(file);
     let mut previous_value = 0.0;
 
-    println!("Writing data into {file_path}...");
+    println!("Writing sensor readings into {}...", file_path.display());
 
     loop {
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
@@ -103,4 +101,14 @@ fn get_default_sensors() -> Vec<SensorConfig> {
             coord: Coord { x: 25.7, y: 40.3 },
         },
     ])
+}
+
+fn verify_path_exists(path: &str) -> anyhow::Result<&Path> {
+    let file_path = Path::new(path);
+
+    if let Some(parent) = file_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    Ok(file_path)
 }
