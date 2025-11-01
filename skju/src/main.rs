@@ -5,7 +5,7 @@ use skju_core::filter::simple_filter::SimpleFilter;
 use skju_core::sensor::Sensor;
 use skju_core::utils::get_sensors_from_file;
 use std::fs::OpenOptions;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::{Arc, Mutex};
@@ -68,6 +68,8 @@ fn read_sensor_data(sensor: Arc<Mutex<Sensor<SimpleFilter>>>, stop: Arc<AtomicBo
 
     let file = OpenOptions::new().read(true).open(file_path)?;
     let mut reader = BufReader::new(file);
+
+    reader.seek(SeekFrom::End(0))?;
 
     loop {
         if stop.load(Relaxed) {
