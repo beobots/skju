@@ -51,13 +51,12 @@ fn create_sensor_from_config(sensor_config: SensorConfig) -> Sensor<SimpleFilter
     let capacity = 100;
     let smoothing = 0.1;
 
-    Sensor::new(
-        sensor_config.id,
-        &sensor_config.name,
-        sensor_config.coord,
-        capacity,
-        SimpleFilter::new(smoothing),
-    )
+    Sensor::new(sensor_config.id, &sensor_config.name)
+        .coord(sensor_config.coord)
+        .filter(SimpleFilter::new(smoothing))
+        .with_capacity(capacity)
+        .build()
+        .unwrap_or_else(|e| panic!("[ERR={:?}] Unable to create Sensor, missing args", e))
 }
 
 fn read_sensor_data(sensor: Arc<Mutex<Sensor<SimpleFilter>>>, stop: Arc<AtomicBool>) -> anyhow::Result<()> {
