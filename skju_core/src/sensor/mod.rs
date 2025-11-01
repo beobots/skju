@@ -1,7 +1,8 @@
-use crate::common::{Coord, FilterContext, LowPassFilter, SensorData};
+use crate::common::{Coord, FilterContext, LowPassFilter, SensorData, SensorOutput};
 use std::collections::VecDeque;
 
 pub struct Sensor<T: LowPassFilter> {
+    pub id: u64,
     pub name: String,
     pub coords: Coord,
     pub filter: T,
@@ -9,9 +10,13 @@ pub struct Sensor<T: LowPassFilter> {
     readings: VecDeque<SensorData>,
 }
 
+unsafe impl<T: LowPassFilter> Send for Sensor<T> {}
+unsafe impl<T: LowPassFilter> Sync for Sensor<T> {}
+
 impl<T: LowPassFilter> Sensor<T> {
-    pub fn new(name: &str, coords: Coord, capacity: usize, filter: T) -> Self {
+    pub fn new(id: u64, name: &str, coords: Coord, capacity: usize, filter: T) -> Self {
         Self {
+            id,
             capacity,
             coords,
             filter,
@@ -42,6 +47,19 @@ impl<T: LowPassFilter> Sensor<T> {
         }
 
         self.readings.push_back(data);
+    }
+
+    pub fn get_latest(&mut self) -> Option<SensorOutput> {
+        let latest = self.readings.back()?;
+        let output = SensorOutput {
+            sensor_id: self.id,
+            sensor_name: self.name.clone(),
+            sensor_coord: Coord { x: self.coords.x, y: self.coords.y },
+            value: latest.value,
+            timestamp: latest.timestamp,
+        };
+
+        Some(output)
     }
 
     pub fn read(&mut self) -> Option<SensorData> {

@@ -159,6 +159,8 @@ dependencies = [
 name = "skju"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "serde_json",
  "skju_core",
 ]
 
