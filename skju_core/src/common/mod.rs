@@ -20,6 +20,15 @@ pub struct SensorData {
     pub timestamp: u128,
 }
 
+#[derive(Clone, Debug)]
+pub struct SensorOutput {
+    pub sensor_id: u64,
+    pub sensor_name: String,
+    pub sensor_coord: Coord,
+    pub value: f64,
+    pub timestamp: u128,
+}
+
 pub struct FilterContext<'a> {
     pub readings: &'a VecDeque<SensorData>,
     pub raw_value: f64,

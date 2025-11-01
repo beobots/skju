@@ -58,6 +58,7 @@ fn generate_sensor_data(sensor_id: u64) -> anyhow::Result<()> {
 
     let mut writer = BufWriter::new(file);
     let mut previous_value = 0.0;
+    let mut now = SystemTime::now();
 
     println!("Writing sensor readings into {}...", file_path.display());
 
@@ -69,6 +70,11 @@ fn generate_sensor_data(sensor_id: u64) -> anyhow::Result<()> {
         let next_reading_in = rand::random_range(10..=20);
 
         writeln!(writer, "{json}")?;
+
+        if now.elapsed()?.as_millis() > 100 {
+            writer.flush()?;
+            now = SystemTime::now();
+        }
 
         std::thread::sleep(Duration::from_millis(next_reading_in));
     }
