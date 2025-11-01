@@ -31,7 +31,6 @@ fn get_sensors() -> anyhow::Result<Vec<SensorConfig>> {
         .read(true)
         .write(true)
         .create(true)
-        .truncate(true)
         .open(file_path)?;
 
     file.read_to_string(&mut file_data)?;
