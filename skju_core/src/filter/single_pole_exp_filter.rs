@@ -1,16 +1,16 @@
 use crate::common::{FilterContext, LowPassFilter};
 
-pub struct SimpleFilter {
+pub struct SinglePoleExponentialLowPass {
     pub smoothing: f32,
 }
 
-impl SimpleFilter {
-    pub fn new(smoothing: f32) -> SimpleFilter {
-        SimpleFilter { smoothing }
+impl SinglePoleExponentialLowPass {
+    pub fn new(smoothing: f32) -> SinglePoleExponentialLowPass {
+        SinglePoleExponentialLowPass { smoothing }
     }
 }
 
-impl LowPassFilter for SimpleFilter {
+impl LowPassFilter for SinglePoleExponentialLowPass {
     fn apply(&mut self, context: &FilterContext) -> f64 {
         context
             .readings
@@ -23,12 +23,12 @@ impl LowPassFilter for SimpleFilter {
 #[cfg(test)]
 mod tests {
     use crate::common::{FilterContext, LowPassFilter, SensorData};
-    use crate::filter::simple_filter::SimpleFilter;
+    use crate::filter::single_pole_exp_filter::SinglePoleExponentialLowPass;
     use std::collections::VecDeque;
 
     #[test]
     fn filter_with_no_readings() {
-        let mut filter = SimpleFilter::new(0.1);
+        let mut filter = SinglePoleExponentialLowPass::new(0.1);
         let raw_value = 0.5;
         let capacity = 100;
         let readings = VecDeque::with_capacity(capacity);
@@ -49,8 +49,8 @@ mod tests {
         let last_filtered_value = 0.2;
         let smoothing_1 = 0.1;
         let smoothing_2 = 0.2;
-        let mut filter_1 = SimpleFilter::new(smoothing_1);
-        let mut filter_2 = SimpleFilter::new(smoothing_2);
+        let mut filter_1 = SinglePoleExponentialLowPass::new(smoothing_1);
+        let mut filter_2 = SinglePoleExponentialLowPass::new(smoothing_2);
         let mut readings = VecDeque::with_capacity(capacity);
 
         let expected_1 = last_filtered_value + smoothing_1 as f64 * (raw_value - last_filtered_value);
