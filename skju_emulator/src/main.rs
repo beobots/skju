@@ -29,9 +29,8 @@ fn get_sensors() -> anyhow::Result<Vec<SensorConfig>> {
     let mut file_data = String::new();
     let mut file = OpenOptions::new()
         .read(true)
-        .write(true)
         .create(true)
-        .truncate(true)
+        .append(true)
         .open(file_path)?;
 
     file.read_to_string(&mut file_data)?;
@@ -59,15 +58,23 @@ fn generate_sensor_data(sensor_id: u64) -> anyhow::Result<()> {
     let mut writer = BufWriter::new(file);
     let mut previous_value = 0.0;
     let mut now = SystemTime::now();
+    let mut consecutive_spikes_left = 0;
 
     println!("Writing sensor readings into {}...", file_path.display());
 
     loop {
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
-        let value = generate_random_reading(&mut previous_value);
+        let value = generate_random_reading(&mut previous_value, consecutive_spikes_left > 0);
         let data = SensorData { timestamp, value };
         let json = to_string(&data)?;
         let next_reading_in = rand::random_range(10..=20);
+
+        if consecutive_spikes_left > 0 {
+            consecutive_spikes_left -= 1;
+        } else {
+            let new_spike = rand::random_bool(0.005);
+            consecutive_spikes_left = if new_spike { rand::random_range(4..10) } else { 0 };
+        }
 
         writeln!(writer, "{json}")?;
 
@@ -80,12 +87,18 @@ fn generate_sensor_data(sensor_id: u64) -> anyhow::Result<()> {
     }
 }
 
-fn generate_random_reading(last_value: &mut f64) -> f64 {
+fn generate_random_reading(last_value: &mut f64, with_spike: bool) -> f64 {
     let mut rng = rand::rng();
     let value: f64 = rng.random_range(-0.01..=0.01);
+    let spike_dir = if rng.random_bool(0.5) { -1.0 } else { 1.0 };
+    let spike: f64 = rng.random_range(1.5..=3.0) * spike_dir;
 
-    *last_value += value;
-    *last_value = last_value.clamp(-1.0, 1.0);
+    *last_value += value - 0.02 * *last_value;
+    *last_value = (*last_value).clamp(-1.0, 1.0);
+
+    if with_spike {
+        *last_value += spike;
+    }
 
     *last_value
 }

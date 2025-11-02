@@ -61,6 +61,7 @@ impl<T: LowPassFilter> SensorBuilder<T> {
 }
 
 impl<T: LowPassFilter> Sensor<T> {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(id: u64, name: &str) -> SensorBuilder<T> {
         SensorBuilder {
             id,
