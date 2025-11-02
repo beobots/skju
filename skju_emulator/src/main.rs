@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::{random_bool, random_range};
 use serde_json::{from_str, to_string};
 use skju_core::common::{Coord, SensorConfig, SensorData};
 use std::fs::OpenOptions;
@@ -11,6 +11,7 @@ fn main() {
 
     if sensors.is_empty() {
         println!("There are no sensors to run");
+        return;
     }
 
     std::thread::scope(|scope| {
@@ -65,18 +66,17 @@ fn generate_sensor_data(sensor_id: u64) -> anyhow::Result<()> {
     loop {
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
         let value = generate_random_reading(&mut previous_value, consecutive_spikes_left > 0);
-        let data = SensorData { timestamp, value };
-        let json = to_string(&data)?;
-        let next_reading_in = rand::random_range(10..=20);
+        let reading_json = to_string(&SensorData { timestamp, value })?;
+        let next_reading_in = random_range(10..=20);
 
         if consecutive_spikes_left > 0 {
             consecutive_spikes_left -= 1;
         } else {
-            let new_spike = rand::random_bool(0.005);
-            consecutive_spikes_left = if new_spike { rand::random_range(4..10) } else { 0 };
+            let new_spike = random_bool(0.005);
+            consecutive_spikes_left = if new_spike { random_range(4..10) } else { 0 };
         }
 
-        writeln!(writer, "{json}")?;
+        writeln!(writer, "{reading_json}")?;
 
         if now.elapsed()?.as_millis() > 100 {
             writer.flush()?;
@@ -88,10 +88,9 @@ fn generate_sensor_data(sensor_id: u64) -> anyhow::Result<()> {
 }
 
 fn generate_random_reading(last_value: &mut f64, with_spike: bool) -> f64 {
-    let mut rng = rand::rng();
-    let value: f64 = rng.random_range(-0.01..=0.01);
-    let spike_dir = if rng.random_bool(0.5) { -1.0 } else { 1.0 };
-    let spike: f64 = rng.random_range(1.5..=3.0) * spike_dir;
+    let value: f64 = random_range(-0.01..=0.01);
+    let spike_dir = if random_bool(0.5) { -1.0 } else { 1.0 };
+    let spike: f64 = random_range(1.5..=3.0) * spike_dir;
 
     *last_value += value - 0.02 * *last_value;
     *last_value = (*last_value).clamp(-1.0, 1.0);
