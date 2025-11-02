@@ -18,7 +18,7 @@ fn main() {
     let sensors: Vec<SensorConfig> = get_sensors_from_file("data/sensors.json").unwrap_or_default();
     let sensors: Vec<Arc<Mutex<FilteredSensor>>> = sensors
         .into_iter()
-        .map(|config| create_sensor_from_config(config))
+        .map(create_sensor_from_config)
         .map(|sensor| Arc::new(Mutex::new(sensor)))
         .collect();
 
@@ -82,7 +82,7 @@ fn read_sensor_data(sensor: Arc<Mutex<FilteredSensor>>, stop: Arc<AtomicBool>) -
         let bytes = reader.read_line(&mut line_data)?;
 
         if bytes != 0 {
-            let sensor_data: SensorData = from_str(&line_data.trim())?;
+            let sensor_data: SensorData = from_str(line_data.trim())?;
             let mut sensor_entity = sensor.lock().map_err(|_| anyhow!("mutex poisoned"))?;
 
             sensor_entity.write(sensor_data.value, sensor_data.timestamp);
