@@ -1,5 +1,5 @@
 {
-  "name": "Rust Sensor Dev Container",
+  "name": "SKJU Dev Container",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."
