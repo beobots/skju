@@ -1,0 +1,24 @@
+{
+  "name": "SKJU Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "fill-labs.dependi"
+      ],
+      "settings": {
+        "rust-analyzer.check.command": "clippy",
+        "rust-analyzer.rustfmt.extraArgs": ["--edition", "2021"]
+      }
+    }
+  },
+  "remoteUser": "ubuntu",
+  "postCreateCommand": "cargo build",
+  "forwardPorts": [8080],
+  "workspaceFolder": "/workspaces/skju"
+}
