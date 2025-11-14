@@ -1,5 +1,19 @@
-use crate::common::{Coord, FilterContext, LowPassFilter, SensorData, SensorOutput};
+use crate::common::{Coord, FilterContext, LowPassFilter, SensorConfig, SensorData, SensorOutput};
 use std::collections::VecDeque;
+use std::fmt;
+use std::fmt::Display;
+use std::str::FromStr;
+
+// region: Typed Fields
+pub struct WithCoord(Coord);
+pub struct NoCoord;
+
+pub struct WithFilter<T: LowPassFilter>(T);
+pub struct NoFilter;
+
+pub struct WithCapacity(usize);
+pub struct NoCapacity;
+// endregion: Typed Fields
 
 pub struct Sensor<T: LowPassFilter> {
     pub id: u64,
@@ -10,12 +24,12 @@ pub struct Sensor<T: LowPassFilter> {
     readings: VecDeque<SensorData>,
 }
 
-pub struct SensorBuilder<T: LowPassFilter> {
+pub struct SensorBuilder<F, U, C> {
     id: u64,
     name: String,
-    coord: Option<Coord>,
-    filter: Option<T>,
-    capacity: Option<usize>,
+    coord: U,
+    filter: F,
+    capacity: C,
     readings: Option<VecDeque<SensorData>>,
 }
 
@@ -26,53 +40,73 @@ pub enum SensorBuildError {
     MissingFilter,
 }
 
-unsafe impl<T: LowPassFilter> Send for Sensor<T> {}
-unsafe impl<T: LowPassFilter> Sync for Sensor<T> {}
-
-impl<T: LowPassFilter> SensorBuilder<T> {
-    pub fn coord(mut self, coord: Coord) -> Self {
-        self.coord = Some(coord);
-        self
+impl SensorBuilder<NoFilter, NoCoord, NoCapacity> {
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new(id: u64, name: &str) -> SensorBuilder<NoFilter, NoCoord, NoCapacity> {
+        SensorBuilder {
+            id,
+            name: name.to_string(),
+            coord: NoCoord,
+            filter: NoFilter,
+            capacity: NoCapacity,
+            readings: None,
+        }
     }
+}
 
-    pub fn filter(mut self, filter: T) -> Self {
-        self.filter = Some(filter);
-        self
-    }
-
-    pub fn with_capacity(mut self, capacity: usize) -> Self {
-        self.capacity = Some(capacity);
-        self.readings = Some(VecDeque::with_capacity(capacity));
-        self
-    }
-
-    pub fn build(self) -> Result<Sensor<T>, SensorBuildError> {
-        let sensor = Sensor {
+impl<U, C> SensorBuilder<NoFilter, U, C> {
+    pub fn filter<T: LowPassFilter>(self, filter: T) -> SensorBuilder<WithFilter<T>, U, C> {
+        SensorBuilder {
             id: self.id,
             name: self.name,
-            coord: self.coord.ok_or(SensorBuildError::MissingCoord)?,
-            filter: self.filter.ok_or(SensorBuildError::MissingFilter)?,
-            capacity: self.capacity.ok_or(SensorBuildError::MissingCapacity)?,
-            readings: self.readings.unwrap_or_default(),
-        };
+            coord: self.coord,
+            capacity: self.capacity,
+            readings: self.readings,
+            filter: WithFilter(filter),
+        }
+    }
+}
 
-        Ok(sensor)
+impl<F, C> SensorBuilder<F, NoCoord, C> {
+    pub fn coord(self, coord: Coord) -> SensorBuilder<F, WithCoord, C> {
+        SensorBuilder {
+            id: self.id,
+            name: self.name,
+            coord: WithCoord(coord),
+            capacity: self.capacity,
+            readings: self.readings,
+            filter: self.filter,
+        }
+    }
+}
+
+impl<F, U> SensorBuilder<F, U, NoCapacity> {
+    pub fn with_capacity(self, capacity: usize) -> SensorBuilder<F, U, WithCapacity> {
+        SensorBuilder {
+            id: self.id,
+            name: self.name,
+            coord: self.coord,
+            filter: self.filter,
+            capacity: WithCapacity(capacity),
+            readings: Some(VecDeque::with_capacity(capacity)),
+        }
+    }
+}
+
+impl<T: LowPassFilter> SensorBuilder<WithFilter<T>, WithCoord, WithCapacity> {
+    pub fn build(self) -> Sensor<T> {
+        Sensor {
+            id: self.id,
+            name: self.name,
+            coord: self.coord.0,
+            filter: self.filter.0,
+            capacity: self.capacity.0,
+            readings: self.readings.unwrap_or_default(),
+        }
     }
 }
 
 impl<T: LowPassFilter> Sensor<T> {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(id: u64, name: &str) -> SensorBuilder<T> {
-        SensorBuilder {
-            id,
-            name: name.to_string(),
-            coord: None,
-            filter: None,
-            capacity: None,
-            readings: None,
-        }
-    }
-
     pub fn is_empty(&self) -> bool {
         self.readings.is_empty()
     }
@@ -112,5 +146,73 @@ impl<T: LowPassFilter> Sensor<T> {
 
     pub fn read(&mut self) -> Option<SensorData> {
         self.readings.pop_front()
+    }
+}
+
+impl Display for SensorData {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{};{}", self.value, self.timestamp)
+    }
+}
+
+impl FromStr for SensorData {
+    type Err = String;
+
+    fn from_str(data_str: &str) -> Result<Self, Self::Err> {
+        let mut split = data_str.split(';');
+
+        let value: f64 = split
+            .next()
+            .ok_or("Missing value")?
+            .parse()
+            .map_err(|_| "Unable to parse value")?;
+
+        let timestamp: u128 = split
+            .next()
+            .ok_or("Missing timestamp")?
+            .parse()
+            .map_err(|_| "Unable to parse timestamp")?;
+
+        Ok(SensorData { value, timestamp })
+    }
+}
+
+impl Display for SensorConfig {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{};{};{};{}", self.id, self.name, self.coord.x, self.coord.y)
+    }
+}
+
+impl FromStr for SensorConfig {
+    type Err = String;
+
+    fn from_str(config_str: &str) -> Result<Self, Self::Err> {
+        let mut split = config_str.split(';');
+
+        let id: u64 = split
+            .next()
+            .ok_or("Missing id")?
+            .parse()
+            .map_err(|_| "Unable to parse id")?;
+
+        let name: String = split
+            .next()
+            .ok_or("Missing sensor name")?
+            .to_string();
+
+        let coord_x: f32 = split
+            .next()
+            .ok_or("Missing coord x")?
+            .parse()
+            .map_err(|_| "Unable to parse x coord")?;
+
+        let coord_y: f32 = split
+            .next()
+            .ok_or("Missing coord y")?
+            .parse()
+            .map_err(|_| "Unable to parse y coord")?;
+        let coord = Coord { x: coord_x, y: coord_y };
+
+        Ok(SensorConfig { id, name, coord })
     }
 }
