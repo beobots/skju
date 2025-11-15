@@ -1,20 +1,19 @@
-use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy)]
 pub struct Coord {
     pub x: f32,
     pub y: f32,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct SensorConfig {
     pub id: u64,
     pub name: String,
     pub coord: Coord,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct SensorData {
     pub value: f64,
     pub timestamp: u128,

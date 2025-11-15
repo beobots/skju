@@ -1,10 +1,13 @@
 use crate::common::SensorConfig;
-use serde_json::from_str;
-use std::error::Error;
 use std::fs::read_to_string;
+use std::path::Path;
 
-pub fn get_sensors_from_file(path: &str) -> Result<Vec<SensorConfig>, Box<dyn Error>> {
-    let data = read_to_string(path)?;
-    let sensors: Vec<SensorConfig> = from_str(&data)?;
+pub fn get_sensors_from_file<T: AsRef<Path>>(path: T) -> Result<Vec<SensorConfig>, String> {
+    let data = read_to_string(path).map_err(|e| e.to_string())?;
+    let sensors = data
+        .lines()
+        .map(|line| line.parse::<SensorConfig>())
+        .collect::<Result<Vec<SensorConfig>, String>>()?;
+
     Ok(sensors)
 }

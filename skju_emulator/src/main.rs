@@ -1,6 +1,6 @@
+use anyhow::anyhow;
 use rand::{random_bool, random_range};
-use serde_json::{from_str, to_string};
-use skju_core::common::{Coord, SensorConfig, SensorData};
+use skju_core::{Coord, SensorConfig, SensorData};
 use std::fs::OpenOptions;
 use std::io::{BufWriter, Read, Write};
 use std::path::Path;
@@ -26,7 +26,7 @@ fn main() {
 }
 
 fn get_sensors() -> anyhow::Result<Vec<SensorConfig>> {
-    let file_path = verify_path_exists("data/sensors.json")?;
+    let file_path = verify_path_exists("data/sensors.txt")?;
     let mut file_data = String::new();
     let mut file = OpenOptions::new()
         .read(true)
@@ -37,12 +37,20 @@ fn get_sensors() -> anyhow::Result<Vec<SensorConfig>> {
     file.read_to_string(&mut file_data)?;
 
     if file_data.trim().is_empty() {
-        file_data = to_string(&get_default_sensors())?;
+        file_data = get_default_sensors()
+            .iter()
+            .map(|s| s.to_string())
+            .collect::<Vec<_>>()
+            .join("\n");
+
         file.write_all(file_data.as_bytes())?;
         file.flush()?;
     }
 
-    let sensors: Vec<SensorConfig> = from_str(&file_data)?;
+    let sensors: Vec<SensorConfig> = file_data
+        .lines()
+        .map(|line| line.parse::<SensorConfig>().map_err(|s| anyhow!(s)))
+        .collect::<anyhow::Result<_>>()?;
 
     Ok(sensors)
 }
@@ -61,12 +69,12 @@ fn generate_sensor_data(sensor_id: u64) -> anyhow::Result<()> {
     let mut now = SystemTime::now();
     let mut consecutive_spikes_left = 0;
 
-    println!("Writing sensor readings into {}...", file_path.display());
+    println!("Writing sensor readings into {file_path}...");
 
     loop {
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
         let value = generate_random_reading(&mut previous_value, consecutive_spikes_left > 0);
-        let reading_json = to_string(&SensorData { timestamp, value })?;
+        let reading_str = SensorData { timestamp, value }.to_string();
         let next_reading_in = random_range(10..=20);
 
         if consecutive_spikes_left > 0 {
@@ -76,7 +84,7 @@ fn generate_sensor_data(sensor_id: u64) -> anyhow::Result<()> {
             consecutive_spikes_left = if new_spike { random_range(4..10) } else { 0 };
         }
 
-        writeln!(writer, "{reading_json}")?;
+        writeln!(writer, "{reading_str}")?;
 
         if now.elapsed()?.as_millis() > 100 {
             writer.flush()?;
@@ -122,12 +130,12 @@ fn get_default_sensors() -> Vec<SensorConfig> {
     ])
 }
 
-fn verify_path_exists(path: &str) -> anyhow::Result<&Path> {
-    let file_path = Path::new(path);
+fn verify_path_exists<T: AsRef<Path>>(path: T) -> anyhow::Result<T> {
+    let file_path = Path::new(path.as_ref());
 
     if let Some(parent) = file_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
 
-    Ok(file_path)
+    Ok(path)
 }
