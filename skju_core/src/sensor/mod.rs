@@ -41,8 +41,7 @@ pub enum SensorBuildError {
 }
 
 impl SensorBuilder<NoFilter, NoCoord, NoCapacity> {
-    #[allow(clippy::new_ret_no_self)]
-    pub fn new(id: u64, name: &str) -> SensorBuilder<NoFilter, NoCoord, NoCapacity> {
+    pub fn new(id: u64, name: &str) -> Self {
         SensorBuilder {
             id,
             name: name.to_string(),
@@ -195,10 +194,7 @@ impl FromStr for SensorConfig {
             .parse()
             .map_err(|_| "Unable to parse id")?;
 
-        let name: String = split
-            .next()
-            .ok_or("Missing sensor name")?
-            .to_string();
+        let name: String = split.next().ok_or("Missing sensor name")?.to_string();
 
         let coord_x: f32 = split
             .next()
@@ -211,6 +207,7 @@ impl FromStr for SensorConfig {
             .ok_or("Missing coord y")?
             .parse()
             .map_err(|_| "Unable to parse y coord")?;
+
         let coord = Coord { x: coord_x, y: coord_y };
 
         Ok(SensorConfig { id, name, coord })
