@@ -1,10 +1,10 @@
+use anyhow::anyhow;
 use rand::{random_bool, random_range};
 use skju_core::{Coord, SensorConfig, SensorData};
 use std::fs::OpenOptions;
 use std::io::{BufWriter, Read, Write};
 use std::path::Path;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use anyhow::anyhow;
 
 fn main() {
     let sensors = get_sensors().unwrap_or_default();
@@ -74,7 +74,7 @@ fn generate_sensor_data(sensor_id: u64) -> anyhow::Result<()> {
     loop {
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
         let value = generate_random_reading(&mut previous_value, consecutive_spikes_left > 0);
-        let reading_json = SensorData { timestamp, value }.to_string();
+        let reading_str = SensorData { timestamp, value }.to_string();
         let next_reading_in = random_range(10..=20);
 
         if consecutive_spikes_left > 0 {
@@ -84,7 +84,7 @@ fn generate_sensor_data(sensor_id: u64) -> anyhow::Result<()> {
             consecutive_spikes_left = if new_spike { random_range(4..10) } else { 0 };
         }
 
-        writeln!(writer, "{reading_json}")?;
+        writeln!(writer, "{reading_str}")?;
 
         if now.elapsed()?.as_millis() > 100 {
             writer.flush()?;
@@ -136,6 +136,6 @@ fn verify_path_exists<T: AsRef<Path>>(path: T) -> anyhow::Result<T> {
     if let Some(parent) = file_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    
+
     Ok(path)
 }
